@@ -60,6 +60,8 @@ export async function initDatabase(): Promise<SqlJsDatabase> {
       parent_id INTEGER,
       sort_order INTEGER DEFAULT 0,
       workspace_id INTEGER REFERENCES workspaces(id) ON DELETE CASCADE,
+      app_path TEXT,
+      app_name TEXT,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     );
@@ -95,8 +97,21 @@ export async function initDatabase(): Promise<SqlJsDatabase> {
   db.run(`INSERT OR IGNORE INTO tags (name, color) VALUES ('项目', '#30a46c')`)
   db.run(`INSERT OR IGNORE INTO tags (name, color) VALUES ('应用', '#8b5cf6')`)
 
+  // Migrate existing databases
+  migrateDatabase()
+
   saveFile()
   return db!
+}
+
+function migrateDatabase() {
+  const d = db!
+  // Add columns that may not exist in older databases
+  try { d.run("ALTER TABLE categories ADD COLUMN app_path TEXT") } catch {}
+  try { d.run("ALTER TABLE categories ADD COLUMN app_name TEXT") } catch {}
+
+  // Clear invalid app_paths (just names like 'code' without a real path)
+  d.run("UPDATE categories SET app_path = NULL, app_name = NULL WHERE app_path IS NOT NULL AND app_path NOT LIKE '%\\%' AND app_path NOT LIKE '%/%'")
 }
 
 function saveFile() {

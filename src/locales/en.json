@@ -77,5 +77,14 @@
   "drive_picker.title": "Select Default Drive",
   "drive_picker.description": "Choose a default drive for storing workspace folders. You can change this later in workspace settings.",
   "drive_picker.drive": "Drive {letter}",
-  "drive_picker.skip": "Skip"
+  "drive_picker.skip": "Skip",
+  "settings.subcategories": "Sub-categories",
+  "settings.add_subcategory": "Add Sub-category",
+  "settings.app": "Open with",
+  "settings.app_placeholder": "Select application...",
+  "settings.app_clear": "Clear",
+  "settings.app_hint": "When opening a folder in this category, launch this app instead of File Explorer",
+  "settings.parent_category": "Parent Category",
+  "folder.app_launch": "Open with {app}",
+  "settings.presets": "Quick-add category templates:"
 }

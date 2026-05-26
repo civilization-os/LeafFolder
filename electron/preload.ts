@@ -10,10 +10,10 @@ const api = {
   getTags: () => ipcRenderer.invoke('get-tags'),
 
   // Categories
-  createCategory: (name: string, workspaceId: number, opts?: { parentId?: number; icon?: string; color?: string }) =>
+  createCategory: (name: string, workspaceId: number, opts?: { parentId?: number; icon?: string; color?: string; appPath?: string; appName?: string }) =>
     ipcRenderer.invoke('create-category', name, workspaceId, opts),
   getCategories: (workspaceId: number) => ipcRenderer.invoke('get-categories', workspaceId),
-  updateCategory: (id: number, data: { name?: string; icon?: string; color?: string }) =>
+  updateCategory: (id: number, data: { name?: string; icon?: string; color?: string; appPath?: string | null; appName?: string | null }) =>
     ipcRenderer.invoke('update-category', id, data),
   deleteCategory: (id: number) => ipcRenderer.invoke('delete-category', id),
 
@@ -42,6 +42,8 @@ const api = {
 
   // Dialogs
   selectDirectory: () => ipcRenderer.invoke('select-directory'),
+  selectExecutable: () => ipcRenderer.invoke('select-executable'),
+  openFolderWithApp: (folderPath: string, appPath: string) => ipcRenderer.invoke('open-folder-with-app', folderPath, appPath),
 
   // Default drive
   detectDefaultDrive: () => ipcRenderer.invoke('detect-default-drive'),
@@ -51,7 +53,7 @@ const api = {
   setMenuLanguage: (lang: string) => ipcRenderer.invoke('set-language', lang),
 
   // Show folder context menu
-  showFolderContextMenu: (starred: boolean) => ipcRenderer.invoke('show-folder-context-menu', { starred }),
+  showFolderContextMenu: (starred: boolean, appName?: string) => ipcRenderer.invoke('show-folder-context-menu', { starred, appName }),
 
   // Context menu actions from main process
   onContextMenuAction: (callback: (action: string) => void) => {

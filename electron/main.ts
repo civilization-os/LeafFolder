@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, Menu } from 'electron'
 import path from 'path'
-import { initDatabase } from './database'
+import { initDatabase, getDb } from './database'
 import { registerFolderHandlers } from './handlers'
 import { registerSettingsHandlers } from './settings'
 import { setAppMenu, registerMenuHandlers } from './menu'
@@ -54,9 +54,9 @@ app.on('window-all-closed', () => {
 })
 
 // Context menu for folder cards
-ipcMain.handle('show-folder-context-menu', (event, actions: { starred: boolean }) => {
+ipcMain.handle('show-folder-context-menu', (event, actions: { starred: boolean; appName?: string }) => {
   // Load language from DB for i18n
-  const db = require('./database').getDb()
+  const db = getDb()
   const langResult = db.exec("SELECT value FROM settings WHERE key = 'lang'")
   const lang: 'zh' | 'en' = (langResult?.[0]?.values?.[0]?.[0] as string) === 'en' ? 'en' : 'zh'
   const s = lang === 'zh' ? {
@@ -73,14 +73,23 @@ ipcMain.handle('show-folder-context-menu', (event, actions: { starred: boolean }
     delete: 'Delete',
   }
 
-  const template = [
+  const template: any[] = [
     { label: s.open, id: 'open', click: () => event.sender.send('context-menu-action', 'open') },
+  ]
+
+  if (actions.appName) {
+    const appLabel = lang === 'zh' ? `用 ${actions.appName} 打开` : `Open with ${actions.appName}`
+    template.push({ label: appLabel, id: 'open-with-app', click: () => event.sender.send('context-menu-action', 'open-with-app') })
+  }
+
+  template.push(
     { type: 'separator' as const },
     { label: actions.starred ? s.unstar : s.star, id: 'star', click: () => event.sender.send('context-menu-action', 'star') },
     { label: s.refresh, id: 'refresh', click: () => event.sender.send('context-menu-action', 'refresh') },
     { type: 'separator' as const },
     { label: s.delete, id: 'delete', click: () => event.sender.send('context-menu-action', 'delete') },
-  ]
+  )
+
   const menu = Menu.buildFromTemplate(template)
   menu.popup()
 })

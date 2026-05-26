@@ -1,6 +1,7 @@
 import { ipcMain, dialog, shell } from 'electron'
 import fs from 'fs'
 import path from 'path'
+import { exec } from 'child_process'
 import { queryAll, queryOne, run, transaction } from './database'
 
 export function registerFolderHandlers() {
@@ -30,36 +31,39 @@ export function registerFolderHandlers() {
     _event,
     name: string,
     workspaceId: number,
-    opts?: { parentId?: number; icon?: string; color?: string }
+    opts?: { parentId?: number; icon?: string; color?: string; appPath?: string; appName?: string }
   ) => {
     const result = run(
-      'INSERT INTO categories (name, workspace_id, parent_id, icon, color) VALUES (?, ?, ?, ?, ?)',
-      [name, workspaceId, opts?.parentId ?? null, opts?.icon ?? 'folder', opts?.color ?? '#6b7280']
+      'INSERT INTO categories (name, workspace_id, parent_id, icon, color, app_path, app_name) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [name, workspaceId, opts?.parentId ?? null, opts?.icon ?? 'folder', opts?.color ?? '#6b7280', opts?.appPath ?? null, opts?.appName ?? null]
     )
     return { id: result.lastInsertRowid, name, workspace_id: workspaceId }
   })
 
   // Get categories by workspace
   ipcMain.handle('get-categories', (_event, workspaceId: number) => {
-    return queryAll('SELECT * FROM categories WHERE workspace_id = ? ORDER BY sort_order, name', [workspaceId])
+    return queryAll('SELECT * FROM categories WHERE workspace_id = ? ORDER BY parent_id IS NOT NULL, sort_order, name', [workspaceId])
   })
 
   // Update category
-  ipcMain.handle('update-category', (_event, id: number, data: { name?: string; icon?: string; color?: string }) => {
+  ipcMain.handle('update-category', (_event, id: number, data: { name?: string; icon?: string; color?: string; appPath?: string | null; appName?: string | null }) => {
     const updates: string[] = []
-    const params: (string | number)[] = []
+    const params: (string | number | null)[] = []
     if (data.name) { updates.push('name = ?'); params.push(data.name) }
     if (data.icon) { updates.push('icon = ?'); params.push(data.icon) }
     if (data.color) { updates.push('color = ?'); params.push(data.color) }
+    if (data.appPath !== undefined) { updates.push('app_path = ?'); params.push(data.appPath) }
+    if (data.appName !== undefined) { updates.push('app_name = ?'); params.push(data.appName) }
     updates.push("updated_at = datetime('now')")
     params.push(id)
     run(`UPDATE categories SET ${updates.join(', ')} WHERE id = ?`, params)
     return { success: true }
   })
 
-  // Delete category (nullify folder references first)
+  // Delete category (nullify folder references, reassign sub-categories)
   ipcMain.handle('delete-category', (_event, id: number) => {
     run('UPDATE folders SET category_id = NULL WHERE category_id = ?', [id])
+    run('UPDATE categories SET parent_id = NULL WHERE parent_id = ?', [id])
     run('DELETE FROM categories WHERE id = ?', [id])
     return { success: true }
   })
@@ -90,9 +94,16 @@ export function registerFolderHandlers() {
   // Get all leaf folders (flattened view)
   ipcMain.handle('get-folders', (_event, workspaceId?: number) => {
     let query = `
-      SELECT f.*, c.name as category_name, c.color as category_color, w.name as workspace_name
+      SELECT f.*,
+        COALESCE(c.name, pc.name) as category_name,
+        COALESCE(c.color, pc.color) as category_color,
+        COALESCE(c.app_path, pc.app_path) as category_app_path,
+        COALESCE(c.app_name, pc.app_name) as category_app_name,
+        c.name as subcategory_name,
+        w.name as workspace_name
       FROM folders f
       LEFT JOIN categories c ON f.category_id = c.id
+      LEFT JOIN categories pc ON c.parent_id = pc.id
       LEFT JOIN workspaces w ON f.workspace_id = w.id
     `
     const params: number[] = []
@@ -213,5 +224,58 @@ export function registerFolderHandlers() {
     run('UPDATE folders SET size_bytes = ?, file_count = ?, updated_at = datetime(\'now\') WHERE id = ?',
       [sizeBytes, fileCount, id])
     return { sizeBytes, fileCount }
+  })
+
+  // Select executable file dialog
+  ipcMain.handle('select-executable', async () => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: [
+        { name: 'Executables', extensions: ['exe', 'bat', 'cmd', 'com'] },
+        { name: 'All Files', extensions: ['*'] },
+      ],
+    })
+    if (!result.canceled && result.filePaths.length > 0) {
+      const filePath = result.filePaths[0]
+      const name = path.basename(filePath, path.extname(filePath))
+      return { path: filePath, name }
+    }
+    return null
+  })
+
+  // Open folder with a specific application (single-instance)
+  const runningApps = new Set<string>()
+
+  ipcMain.handle('open-folder-with-app', async (_event, folderPath: string, appPath: string) => {
+    if (!appPath.includes('\\') && !appPath.includes('/') && !appPath.includes('.')) {
+      shell.openPath(folderPath); return
+    }
+    if (!fs.existsSync(appPath)) {
+      shell.openPath(folderPath); return
+    }
+
+    if (runningApps.has(appPath)) {
+      // Instance already launched — open folder in existing app
+      exec(`"${appPath}" "${folderPath}"`, (err) => {
+        if (err) console.error('Failed to open folder in existing app:', err)
+      })
+    } else {
+      // Launch new instance
+      runningApps.add(appPath)
+
+      exec(`"${appPath}" "${folderPath}"`, (err) => {
+        if (err) {
+          console.error('Failed to open folder with app:', err)
+          runningApps.delete(appPath)
+          // Fallback: open in Explorer
+          shell.openPath(folderPath)
+        }
+      })
+
+      // Some apps use a launcher stub (e.g. VS Code's Code.exe) that exits
+      // quickly after starting the real process. Keep the flag for a short
+      // debounce to prevent rapid re-launches.
+      setTimeout(() => runningApps.delete(appPath), 3000)
+    }
   })
 }

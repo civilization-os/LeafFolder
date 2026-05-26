@@ -21,6 +21,8 @@ export interface Category {
   parent_id: number | null
   sort_order: number
   workspace_id: number
+  app_path: string | null
+  app_name: string | null
   created_at: string
   updated_at: string
 }
@@ -42,6 +44,8 @@ export interface Folder {
   category_name?: string
   workspace_name?: string
   category_color?: string
+  category_app_path?: string | null
+  category_app_name?: string | null
 }
 
 export interface Api {
@@ -49,9 +53,9 @@ export interface Api {
   getWorkspaces: () => Promise<Workspace[]>
   deleteWorkspace: (id: number) => Promise<void>
   getTags: () => Promise<Tag[]>
-  createCategory: (name: string, workspaceId: number, opts?: { parentId?: number; icon?: string; color?: string }) => Promise<Category>
+  createCategory: (name: string, workspaceId: number, opts?: { parentId?: number; icon?: string; color?: string; appPath?: string; appName?: string }) => Promise<Category>
   getCategories: (workspaceId: number) => Promise<Category[]>
-  updateCategory: (id: number, data: { name?: string; icon?: string; color?: string }) => Promise<void>
+  updateCategory: (id: number, data: { name?: string; icon?: string; color?: string; appPath?: string | null; appName?: string | null }) => Promise<void>
   deleteCategory: (id: number) => Promise<void>
   getFolders: (workspaceId?: number) => Promise<Folder[]>
   createFolder: (name: string, categoryId: number, workspaceId: number, description?: string, tags?: string) => Promise<Folder>
@@ -67,10 +71,12 @@ export interface Api {
   setSetting: (key: string, value: string) => Promise<void>
   getAllSettings: () => Promise<Record<string, string>>
   selectDirectory: () => Promise<string | null>
+  selectExecutable: () => Promise<{ path: string; name: string } | null>
+  openFolderWithApp: (folderPath: string, appPath: string) => Promise<void>
   detectDefaultDrive: () => Promise<string | null>
   getAvailableDrives: () => Promise<{ letter: string; size: number }[]>
   setMenuLanguage: (lang: string) => Promise<void>
-  showFolderContextMenu: (starred: boolean) => Promise<void>
+  showFolderContextMenu: (starred: boolean, appName?: string) => Promise<void>
   onContextMenuAction: (callback: (action: string) => void) => () => void
 }
 

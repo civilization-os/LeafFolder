@@ -146,7 +146,16 @@ export default function CreateFolderDialog({ workspaceId, categories: initialCat
               onChange={e => setCategoryId(Number(e.target.value))}
               style={{ flex: 1, padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
             >
-              {cats.map(c => (
+              {cats.filter(c => !c.parent_id).map(pc => (
+                <optgroup key={pc.id} label={pc.name}>
+                  <option value={pc.id}>{pc.name}</option>
+                  {cats.filter(c => c.parent_id === pc.id).map(cc => (
+                    <option key={cc.id} value={cc.id}>&nbsp;&nbsp;{cc.name}</option>
+                  ))}
+                </optgroup>
+              ))}
+              {/* Uncategorized top-level categories without children */}
+              {cats.filter(c => !c.parent_id).length === 0 && cats.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>

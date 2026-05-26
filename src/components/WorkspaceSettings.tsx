@@ -2,14 +2,61 @@ import { useState, useEffect } from 'react'
 import type { Workspace, Category } from '../types'
 import { useI18n } from '../locales/I18nContext'
 import { useConfirm } from '../locales/ConfirmContext'
-import type { Lang } from '../locales'
 
 const COLORS = ['#5e6ad2', '#e5484d', '#30a46c', '#f5a623', '#12b5e5', '#8b5cf6', '#ec4899', '#10b981']
-const DEFAULT_CATEGORIES = ['工作', '学习', '个人', '项目', '文档']
+
+// Default categories with sub-categories and app associations
+const DEFAULT_TREE: { name: string; color: string; children?: { name: string; color: string }[] }[] = [
+  {
+    name: '代码', color: '#5e6ad2', children: [
+      { name: '前端项目', color: '#12b5e5' },
+      { name: '后端项目', color: '#30a46c' },
+      { name: '桌面应用', color: '#8b5cf6' },
+    ],
+  },
+  {
+    name: '文档', color: '#f5a623', children: [
+      { name: 'Markdown', color: '#e5484d' },
+      { name: 'PDF', color: '#ec4899' },
+    ],
+  },
+  {
+    name: '学习', color: '#30a46c', children: [
+      { name: '教程', color: '#12b5e5' },
+      { name: '笔记', color: '#f5a623' },
+    ],
+  },
+  {
+    name: '个人', color: '#ec4899', children: [
+      { name: '照片', color: '#10b981' },
+      { name: '音乐', color: '#8b5cf6' },
+    ],
+  },
+  {
+    name: '项目', color: '#8b5cf6', children: [
+      { name: '进行中', color: '#5e6ad2' },
+      { name: '已完成', color: '#30a46c' },
+      { name: '归档', color: '#6b7280' },
+    ],
+  },
+]
 
 interface Props {
   workspace: Workspace
   onUpdate: () => void
+}
+
+// Helper to build a tree from flat categories
+function buildTree(cats: Category[]): (Category & { children: Category[] })[] {
+  const topLevel = cats.filter(c => !c.parent_id)
+  const childMap: Record<number, Category[]> = {}
+  for (const c of cats) {
+    if (c.parent_id) {
+      if (!childMap[c.parent_id]) childMap[c.parent_id] = []
+      childMap[c.parent_id].push(c)
+    }
+  }
+  return topLevel.map(c => ({ ...c, children: childMap[c.id] || [] }))
 }
 
 export default function WorkspaceSettings({ workspace, onUpdate }: Props) {
@@ -18,6 +65,7 @@ export default function WorkspaceSettings({ workspace, onUpdate }: Props) {
   const [categories, setCategories] = useState<Category[]>([])
   const [newCatName, setNewCatName] = useState('')
   const [newCatColor, setNewCatColor] = useState(COLORS[0])
+  const [newCatParentId, setNewCatParentId] = useState<number | null>(null)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editingName, setEditingName] = useState('')
   const [defaultDrive, setDefaultDrive] = useState('')
@@ -29,6 +77,9 @@ export default function WorkspaceSettings({ workspace, onUpdate }: Props) {
     })
   }, [workspace.id])
 
+  const tree = buildTree(categories)
+  const topLevel = categories.filter(c => !c.parent_id)
+
   const handleSaveDrive = async () => {
     const drive = defaultDrive.replace(':', '')
     if (!/^[A-Z]$/i.test(drive)) return
@@ -37,9 +88,13 @@ export default function WorkspaceSettings({ workspace, onUpdate }: Props) {
 
   const handleAddCategory = async () => {
     if (!newCatName.trim()) return
-    await window.api.createCategory(newCatName.trim(), workspace.id, { color: newCatColor })
+    await window.api.createCategory(newCatName.trim(), workspace.id, {
+      color: newCatColor,
+      parentId: newCatParentId ?? undefined,
+    })
     setNewCatName('')
     setNewCatColor(COLORS[0])
+    setNewCatParentId(null)
     const cats = await window.api.getCategories(workspace.id)
     setCategories(cats)
     onUpdate()
@@ -54,7 +109,13 @@ export default function WorkspaceSettings({ workspace, onUpdate }: Props) {
   }
 
   const handleDeleteCategory = async (id: number) => {
-    const ok = await confirm({ title: t('form.delete'), message: t('settings.delete_category_confirm'), danger: true, confirmLabel: t('form.delete'), cancelLabel: t('sidebar.cancel') })
+    const ok = await confirm({
+      title: t('form.delete'),
+      message: t('settings.delete_category_confirm'),
+      danger: true,
+      confirmLabel: t('form.delete'),
+      cancelLabel: t('sidebar.cancel'),
+    })
     if (!ok) return
     await window.api.deleteCategory(id)
     const cats = await window.api.getCategories(workspace.id)
@@ -67,8 +128,148 @@ export default function WorkspaceSettings({ workspace, onUpdate }: Props) {
     setCategories(cats)
   }
 
+  const handleSetApp = async (id: number) => {
+    const result = await window.api.selectExecutable()
+    if (result) {
+      await window.api.updateCategory(id, { appPath: result.path, appName: result.name })
+      const cats = await window.api.getCategories(workspace.id)
+      setCategories(cats)
+    }
+  }
+
+  const handleClearApp = async (id: number) => {
+    await window.api.updateCategory(id, { appPath: null, appName: null })
+    const cats = await window.api.getCategories(workspace.id)
+    setCategories(cats)
+  }
+
+  // Check if a default tree category has any items not already present
+  const treeMissingCount = (entry: typeof DEFAULT_TREE[number]) => {
+    const existing = categories.some(c => c.name === entry.name && !c.parent_id)
+    const subMissing = (entry.children || []).filter(sub => !categories.some(c => c.name === sub.name && categories.find(p => p.id === c.parent_id)?.name === entry.name))
+    if (!existing) return entry.children ? entry.children.length + 1 : 1
+    return subMissing.length
+  }
+
+  const handleAddDefaultTree = async (entry: typeof DEFAULT_TREE[number]) => {
+    // Find or create parent
+    let parent = categories.find(c => c.name === entry.name && !c.parent_id)
+    if (!parent) {
+      parent = await window.api.createCategory(entry.name, workspace.id, { color: entry.color }) as unknown as Category
+    }
+    // Create missing sub-categories
+    for (const sub of entry.children || []) {
+      const exists = categories.some(c => c.name === sub.name && c.parent_id === parent!.id)
+      if (!exists) {
+        await window.api.createCategory(sub.name, workspace.id, {
+          color: sub.color,
+          parentId: parent!.id,
+        })
+      }
+    }
+    const cats = await window.api.getCategories(workspace.id)
+    setCategories(cats)
+    onUpdate()
+  }
+
+  const renderCategoryRow = (cat: Category, indent: number = 0) => (
+    <div
+      key={cat.id}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px',
+        marginLeft: indent * 20,
+        background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)',
+        border: '1px solid var(--border)',
+      }}
+    >
+      <div style={{
+        width: 12, height: 12, borderRadius: '50%', background: cat.color,
+        flexShrink: 0,
+      }} />
+      {editingId === cat.id ? (
+        <input
+          value={editingName}
+          onChange={e => setEditingName(e.target.value)}
+          onBlur={() => handleUpdateCategory(cat.id)}
+          onKeyDown={e => e.key === 'Enter' && handleUpdateCategory(cat.id)}
+          autoFocus
+          style={{ flex: 1 }}
+        />
+      ) : (
+        <span
+          style={{ flex: 1, cursor: 'pointer', fontSize: 13, fontWeight: indent === 0 ? 600 : 400 }}
+          onDoubleClick={() => { setEditingId(cat.id); setEditingName(cat.name) }}
+        >
+          {cat.name}
+        </span>
+      )}
+
+      {/* App indicator */}
+      {cat.app_name && (
+        <span style={{
+          fontSize: 10, padding: '1px 6px', borderRadius: 3,
+          background: '#5e6ad220', color: '#5e6ad2', whiteSpace: 'nowrap',
+        }}>
+          {cat.app_name}
+        </span>
+      )}
+
+      <div style={{ display: 'flex', gap: 2 }}>
+        {COLORS.map(c => (
+          <button
+            key={c}
+            onClick={() => handleChangeColor(cat.id, c)}
+            style={{
+              width: 14, height: 14, borderRadius: '50%', background: c,
+              border: cat.color === c ? '2px solid var(--text-primary)' : '2px solid transparent',
+              cursor: 'pointer', padding: 0,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* App picker button */}
+      <button
+        className="btn-icon btn-ghost"
+        onClick={() => handleSetApp(cat.id)}
+        title={t('settings.app')}
+        style={{ fontSize: 11, opacity: 0.7 }}
+      >
+        {cat.app_path ? '⚙' : '📎'}
+      </button>
+      {cat.app_path && (
+        <button
+          className="btn-icon btn-ghost"
+          onClick={() => handleClearApp(cat.id)}
+          title={t('settings.app_clear')}
+          style={{ fontSize: 9, opacity: 0.5, color: 'var(--danger)' }}
+        >
+          ✕
+        </button>
+      )}
+
+      {/* Add sub-category */}
+      <button
+        className="btn-icon btn-ghost"
+        onClick={() => { setNewCatParentId(cat.id); setNewCatName(''); }}
+        title={t('settings.add_subcategory')}
+        style={{ fontSize: 12, opacity: 0.6 }}
+      >
+        +
+      </button>
+
+      <button
+        className="btn-icon btn-ghost"
+        onClick={() => handleDeleteCategory(cat.id)}
+        style={{ color: 'var(--text-tertiary)' }}
+      >
+        ✕
+      </button>
+    </div>
+  )
+
   return (
-    <div style={{ maxWidth: 600 }}>
+    <div style={{ maxWidth: 700 }}>
       <div className="mb-4">
         <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>{workspace.name}</h2>
         <div className="text-tertiary" style={{ fontSize: 12 }}>{workspace.path}</div>
@@ -112,88 +313,58 @@ export default function WorkspaceSettings({ workspace, onUpdate }: Props) {
         </div>
       </div>
 
+      {/* Categories */}
       <div style={{ marginBottom: 32 }}>
         <div className="flex items-center justify-between mb-2">
           <h3 style={{ fontSize: 13, fontWeight: 600 }}>{t('settings.categories')}</h3>
         </div>
 
+        {/* Tree display */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }}>
-          {categories.map(cat => (
-            <div
-              key={cat.id}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px',
-                background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--border)',
-              }}
-            >
-              <div style={{
-                width: 12, height: 12, borderRadius: '50%', background: cat.color,
-                flexShrink: 0,
-              }} />
-              {editingId === cat.id ? (
-                <input
-                  value={editingName}
-                  onChange={e => setEditingName(e.target.value)}
-                  onBlur={() => handleUpdateCategory(cat.id)}
-                  onKeyDown={e => e.key === 'Enter' && handleUpdateCategory(cat.id)}
-                  autoFocus
-                  style={{ flex: 1 }}
-                />
-              ) : (
-                <span
-                  style={{ flex: 1, cursor: 'pointer' }}
-                  onDoubleClick={() => { setEditingId(cat.id); setEditingName(cat.name) }}
-                >
-                  {cat.name}
-                </span>
-              )}
-
-              <div style={{ display: 'flex', gap: 2 }}>
-                {COLORS.map(c => (
-                  <button
-                    key={c}
-                    onClick={() => handleChangeColor(cat.id, c)}
-                    style={{
-                      width: 14, height: 14, borderRadius: '50%', background: c, border: cat.color === c ? '2px solid var(--text-primary)' : '2px solid transparent', cursor: 'pointer', padding: 0,
-                    }}
-                  />
-                ))}
-              </div>
-
-              <button className="btn-icon btn-ghost" onClick={() => handleDeleteCategory(cat.id)} style={{ color: 'var(--text-tertiary)' }}>
-                ✕
-              </button>
+          {tree.map(node => (
+            <div key={node.id}>
+              {renderCategoryRow(node, 0)}
+              {node.children.map(child => renderCategoryRow(child, 1))}
             </div>
           ))}
         </div>
 
-        {/* Quick-add default categories */}
-        {DEFAULT_CATEGORIES.filter(d => !categories.some(c => c.name === d)).length > 0 && (
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>快速添加：</div>
-        )}
+        {/* Quick-add default trees */}
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>
+          {t('settings.presets') || '快速添加分类模板：'}
+        </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-          {DEFAULT_CATEGORIES.filter(d => !categories.some(c => c.name === d)).map((name, i) => (
+          {DEFAULT_TREE.filter(d => treeMissingCount(d) > 0).map((entry) => (
             <button
-              key={name}
+              key={entry.name}
               className="btn btn-sm"
               style={{
-                background: `${COLORS[i % COLORS.length]}20`,
-                color: COLORS[i % COLORS.length],
-                border: `1px solid ${COLORS[i % COLORS.length]}40`,
+                background: `${entry.color}20`,
+                color: entry.color,
+                border: `1px solid ${entry.color}40`,
               }}
-              onClick={async () => {
-                await window.api.createCategory(name, workspace.id, { color: COLORS[i % COLORS.length] })
-                const cats = await window.api.getCategories(workspace.id)
-                setCategories(cats)
-                onUpdate()
-              }}
+              onClick={() => handleAddDefaultTree(entry)}
             >
-              + {name}
+              + {entry.name}
+              {entry.children && treeMissingCount(entry) > 1 && ` (${treeMissingCount(entry)})`}
             </button>
           ))}
         </div>
 
+        {/* Add category form */}
+        {newCatParentId !== null && (
+          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>
+            {t('settings.parent_category')}:
+            {' '}{categories.find(c => c.id === newCatParentId)?.name}
+            <button
+              className="btn btn-ghost"
+              style={{ fontSize: 10, padding: '0 4px', marginLeft: 4 }}
+              onClick={() => setNewCatParentId(null)}
+            >
+              ✕
+            </button>
+          </div>
+        )}
         <div className="input-group">
           <input
             placeholder={t('settings.new_category')}
@@ -208,15 +379,20 @@ export default function WorkspaceSettings({ workspace, onUpdate }: Props) {
                 key={c}
                 onClick={() => setNewCatColor(c)}
                 style={{
-                  width: 16, height: 16, borderRadius: '50%', background: c, border: newCatColor === c ? '2px solid var(--text-primary)' : '2px solid transparent', cursor: 'pointer', padding: 0,
+                  width: 16, height: 16, borderRadius: '50%', background: c,
+                  border: newCatColor === c ? '2px solid var(--text-primary)' : '2px solid transparent',
+                  cursor: 'pointer', padding: 0,
                 }}
               />
             ))}
           </div>
-          <button className="btn btn-primary" onClick={handleAddCategory} disabled={!newCatName.trim()}>{t('form.add')}</button>
+          <button className="btn btn-primary" onClick={handleAddCategory} disabled={!newCatName.trim()}>
+            {t('form.add')}
+          </button>
         </div>
       </div>
 
+      {/* About */}
       <div>
         <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{t('settings.about')}</h3>
         <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.8 }}>
@@ -228,7 +404,13 @@ export default function WorkspaceSettings({ workspace, onUpdate }: Props) {
           <button
             className="btn btn-danger"
             onClick={async () => {
-              const ok = await confirm({ title: t('form.delete'), message: t('workspace.delete_confirm'), danger: true, confirmLabel: t('form.delete'), cancelLabel: t('sidebar.cancel') })
+              const ok = await confirm({
+                title: t('form.delete'),
+                message: t('workspace.delete_confirm'),
+                danger: true,
+                confirmLabel: t('form.delete'),
+                cancelLabel: t('sidebar.cancel'),
+              })
               if (!ok) return
               await window.api.deleteWorkspace(workspace.id)
               onUpdate()

@@ -97,8 +97,12 @@ export default function FolderGrid({ folders, workspaceId, onRefresh }: Props) {
     onRefresh()
   }
 
-  const handleOpen = (folderPath: string) => {
-    window.api.openFolder(folderPath)
+  const handleOpen = (folder: Folder) => {
+    if (folder.category_app_path) {
+      window.api.openFolderWithApp(folder.path, folder.category_app_path)
+    } else {
+      window.api.openFolder(folder.path)
+    }
   }
 
   const toggleSelect = (id: number) => {
@@ -126,7 +130,8 @@ export default function FolderGrid({ folders, workspaceId, onRefresh }: Props) {
       const folder = contextRef.current
       if (!folder) return
       switch (action) {
-        case 'open': handleOpen(folder.path); break
+        case 'open': handleOpen(folder); break
+        case 'open-with-app': window.api.openFolderWithApp(folder.path, folder.category_app_path!); break
         case 'star': handleToggleStar(folder); break
         case 'refresh': handleRefreshStats(folder.id); break
         case 'delete': handleDelete(folder.id); break
@@ -139,7 +144,7 @@ export default function FolderGrid({ folders, workspaceId, onRefresh }: Props) {
   const handleContextMenu = useCallback((e: React.MouseEvent, folder: Folder) => {
     e.preventDefault()
     contextRef.current = folder
-    window.api.showFolderContextMenu(folder.starred === 1)
+    window.api.showFolderContextMenu(folder.starred === 1, folder.category_app_name || undefined)
   }, [])
 
   const hasSelection = selectedIds.size > 0
@@ -150,11 +155,21 @@ export default function FolderGrid({ folders, workspaceId, onRefresh }: Props) {
         <div
           key={folder.id}
           className={`folder-card ${selectedIds.has(folder.id) ? 'selected' : ''}`}
-          onDoubleClick={() => handleOpen(folder.path)}
+          onDoubleClick={() => handleOpen(folder)}
           onContextMenu={(e) => handleContextMenu(e, folder)}
           onClick={() => toggleSelect(folder.id)}
         >
           <div className="folder-card-actions">
+            {folder.category_app_name && (
+              <button
+                className="btn-icon btn-ghost"
+                onClick={(e) => { e.stopPropagation(); handleOpen(folder) }}
+                title={t('folder.app_launch', { app: folder.category_app_name })}
+                style={{ fontSize: 10, color: '#5e6ad2' }}
+              >
+                ▶
+              </button>
+            )}
             <button
               className={`star-btn ${folder.starred ? 'active' : ''}`}
               onClick={(e) => { e.stopPropagation(); handleToggleStar(folder) }}
@@ -195,6 +210,7 @@ export default function FolderGrid({ folders, workspaceId, onRefresh }: Props) {
 
           <div className="folder-meta">
             {folder.category_name && <span className="badge">{folder.category_name}</span>}
+            {folder.category_app_name && <span className="badge" style={{ background: '#5e6ad220', color: '#5e6ad2' }}>▶ {folder.category_app_name}</span>}
             {getFolderTags(folder.tags, tagMap).map(tag => (
               <span key={tag.name} className="badge" style={{ background: `${tag.color}20`, color: tag.color }}>{tag.name}</span>
             ))}
@@ -238,12 +254,13 @@ export default function FolderGrid({ folders, workspaceId, onRefresh }: Props) {
               onChange={() => toggleSelect(folder.id)}
             />
           </label>
-          <span className="list-cell-name" onDoubleClick={() => handleOpen(folder.path)}>
+          <span className="list-cell-name" onDoubleClick={() => handleOpen(folder)}>
             <span className="list-icon">📁</span>
             {folder.name}
           </span>
           <span className="list-cell-cat" style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
             {folder.category_name && <span className="badge">{folder.category_name}</span>}
+            {folder.category_app_name && <span className="badge" style={{ background: '#5e6ad220', color: '#5e6ad2' }}>▶</span>}
             {getFolderTags(folder.tags, tagMap).map(tag => (
               <span key={tag.name} className="badge" style={{ background: `${tag.color}20`, color: tag.color }}>{tag.name}</span>
             ))}
@@ -253,6 +270,11 @@ export default function FolderGrid({ folders, workspaceId, onRefresh }: Props) {
           <span className="list-cell-meta">{formatSize(folder.size_bytes) || '-'}</span>
           <span className="list-cell-date">{formatDate(folder.updated_at, lang, t)}</span>
           <span className="list-cell-actions">
+            {folder.category_app_name && (
+              <button className="btn-icon btn-ghost" onClick={() => handleOpen(folder)} title={t('folder.app_launch', { app: folder.category_app_name })} style={{ fontSize: 10, color: '#5e6ad2' }}>
+                ▶
+              </button>
+            )}
             <button className={`btn-icon btn-ghost ${folder.starred ? 'star-active' : ''}`} onClick={() => handleToggleStar(folder)} title={folder.starred ? t('folder.unstar') : t('folder.star')} style={{ fontSize: 12 }}>
               {folder.starred ? '★' : '☆'}
             </button>
@@ -274,7 +296,7 @@ export default function FolderGrid({ folders, workspaceId, onRefresh }: Props) {
         <div
           key={folder.id}
           className={`icon-item ${selectedIds.has(folder.id) ? 'selected' : ''}`}
-          onDoubleClick={() => handleOpen(folder.path)}
+          onDoubleClick={() => handleOpen(folder)}
           onContextMenu={(e) => handleContextMenu(e, folder)}
           onClick={() => toggleSelect(folder.id)}
         >
@@ -283,6 +305,7 @@ export default function FolderGrid({ folders, workspaceId, onRefresh }: Props) {
           </div>
           <div className="icon-item-name" title={folder.name}>{folder.name}</div>
           {folder.category_name && <div className="icon-item-cat">{folder.category_name}</div>}
+          {folder.category_app_name && <div style={{ fontSize: 8, padding: '1px 4px', borderRadius: 2, background: '#5e6ad220', color: '#5e6ad2', marginTop: 1 }}>▶ {folder.category_app_name}</div>}
           {getFolderTags(folder.tags, tagMap).length > 0 && (
             <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
               {getFolderTags(folder.tags, tagMap).slice(0, 2).map(tag => (

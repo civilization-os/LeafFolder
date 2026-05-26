@@ -77,5 +77,14 @@
   "drive_picker.title": "选择默认盘符",
   "drive_picker.description": "选择一个默认盘符用于存放工作区文件夹。你之后可以在工作区设置中更改。",
   "drive_picker.drive": "{letter} 盘",
-  "drive_picker.skip": "跳过"
+  "drive_picker.skip": "跳过",
+  "settings.subcategories": "子分类",
+  "settings.add_subcategory": "添加子分类",
+  "settings.app": "打开方式",
+  "settings.app_placeholder": "选择应用程序...",
+  "settings.app_clear": "清除",
+  "settings.app_hint": "打开此分类的文件夹时，使用指定应用程序代替资源管理器",
+  "settings.parent_category": "父分类",
+  "folder.app_launch": "用 {app} 打开",
+  "settings.presets": "快速添加分类模板："
 }
