@@ -19,6 +19,7 @@
     "@vitejs/plugin-react": "^4.7.0",
     "electron": "^30.0.0",
     "electron-builder": "^24.13.3",
+    "sharp": "^0.34.5",
     "typescript": "^5.9.3",
     "vite": "^5.4.21",
     "vite-plugin-electron": "^0.28.8",
@@ -26,7 +27,7 @@
   },
   "build": {
     "appId": "com.folder-manager.app",
-    "productName": "Folder Manager",
+    "productName": "LeafFolder",
     "files": [
       "dist/**/*",
       "dist-electron/**/*"
@@ -35,7 +36,9 @@
       "output": "release"
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "build/icon.png",
+      "artifactName": "${productName}-${version}-setup.${ext}"
     }
   }
 }

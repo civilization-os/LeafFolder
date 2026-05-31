@@ -32,8 +32,8 @@ export default function Sidebar({
 
   useEffect(() => {
     Promise.all(workspaces.map(ws =>
-      window.api.getCategories(ws.id).then(cats => ({ wsId: ws.id, cats }))
-    )).then(results => {
+      window.api.getCategories(ws.id).then(cats => ({ wsId: ws.id, cats })))
+    ).then(results => {
       const map: Record<number, Category[]> = {}
       for (const { wsId, cats } of results) map[wsId] = cats
       setCategoriesByWs(map)
@@ -75,26 +75,22 @@ export default function Sidebar({
 
   return (
     <div className="sidebar">
-      <div className="sidebar-header">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <path d="M2 4a2 2 0 012-2h2.586a1 1 0 01.707.293L8.707 3.707A1 1 0 009.414 4H12a2 2 0 012 2v5a2 2 0 01-2 2H4a2 2 0 01-2-2V4z" fill="currentColor" />
-        </svg>
-        {t('app.title')}
-      </div>
-
       <div className="sidebar-nav">
-        <div className="nav-item active" onClick={() => { if (workspaces[0]) onSelectWorkspaceAndPage(workspaces[0].id, 'folders') }}>
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+        <button
+          className={`nav-item ${workspaces.length > 0 ? '' : ''}`}
+          onClick={() => { if (workspaces[0]) onSelectWorkspaceAndPage(workspaces[0].id, 'folders') }}
+        >
+          <svg className="nav-icon" width="14" height="14" viewBox="0 0 16 16" fill="none">
             <rect x="1" y="4" width="14" height="11" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" />
             <path d="M1 6h14" stroke="currentColor" strokeWidth="1.5" />
           </svg>
           {t('sidebar.all_folders')}
-        </div>
+        </button>
 
         <div className="nav-section-title">{t('sidebar.workspaces')}</div>
 
         {workspaces.length === 0 && (
-          <div className="nav-item" style={{ cursor: 'default', color: 'var(--text-tertiary)', fontSize: 11 }}>
+          <div className="nav-item" style={{ cursor: 'default', color: 'var(--text-tertiary)', fontSize: 'var(--text-sm)' }}>
             {t('sidebar.no_workspaces')}
           </div>
         )}
@@ -102,28 +98,32 @@ export default function Sidebar({
         {workspaces.map(ws => (
           <div
             key={ws.id}
-            className={`nav-item ${activeWorkspaceId === ws.id ? 'active' : ''}`}
+            className={`ws-item ${activeWorkspaceId === ws.id ? 'active' : ''}`}
             onClick={() => onSelectWorkspaceAndPage(ws.id, 'folders')}
           >
-            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <span className="ws-item-name">
               {ws.name}
             </span>
-            <div style={{ display: 'flex', gap: 3, marginRight: 4, flexShrink: 0, flexWrap: 'wrap', maxWidth: 100, justifyContent: 'flex-end' }}>
+            <div className="ws-item-badges">
               {(categoriesByWs[ws.id] || []).slice(0, 3).map(cat => (
-                <span key={cat.id} style={{
-                  fontSize: 9, padding: '0 4px', borderRadius: 3, lineHeight: '16px',
-                  background: `${cat.color}20`, color: cat.color, whiteSpace: 'nowrap',
-                }}>{cat.name}</span>
+                <span
+                  key={cat.id}
+                  className="ws-item-badge"
+                  style={{ background: `${cat.color}18`, color: cat.color }}
+                >
+                  {cat.name}
+                </span>
               ))}
               {(categoriesByWs[ws.id] || []).length > 3 && (
-                <span style={{ fontSize: 9, color: 'var(--text-tertiary)', lineHeight: '16px' }}>+{categoriesByWs[ws.id].length - 3}</span>
+                <span className="ws-item-badge-more">
+                  +{categoriesByWs[ws.id].length - 3}
+                </span>
               )}
             </div>
             <button
-              className="btn-icon btn-ghost"
+              className="btn-icon btn-ghost btn-sm ws-item-settings"
               onClick={(e) => { e.stopPropagation(); onSelectWorkspaceAndPage(ws.id, 'settings') }}
               title={t('sidebar.settings')}
-              style={{ flexShrink: 0, opacity: 0.6 }}
             >
               ⚙
             </button>
@@ -131,7 +131,7 @@ export default function Sidebar({
         ))}
 
         {showNew ? (
-          <div style={{ padding: '8px 0', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="ws-form">
             <input
               placeholder={t('sidebar.workspace_name')}
               value={newName}
@@ -144,13 +144,14 @@ export default function Sidebar({
                 placeholder={t('sidebar.path_optional')}
                 value={newPath}
                 onChange={e => setNewPath(e.target.value)}
-                style={{ flex: 1, fontSize: 11 }}
+                className="flex-1"
+                style={{ fontSize: 'var(--text-sm)' }}
               />
-              <button className="btn btn-ghost btn-icon" onClick={handleSelectDir} title={t('sidebar.browse')}>📁</button>
+              <button className="btn-ghost btn-icon" onClick={handleSelectDir} title={t('sidebar.browse')}>📁</button>
             </div>
-            <div className="text-tertiary" style={{ fontSize: 10, paddingLeft: 2 }}>{t('settings.default_drive_hint')}</div>
-            <div className="flex gap-2">
-              <button className="btn btn-primary" onClick={handleCreate} style={{ flex: 1 }}>{t('sidebar.create')}</button>
+            <div className="text-tertiary text-xs" style={{ paddingLeft: 2 }}>{t('settings.default_drive_hint')}</div>
+            <div className="ws-form-footer">
+              <button className="btn btn-primary flex-1" onClick={handleCreate}>{t('sidebar.create')}</button>
               <button className="btn btn-ghost" onClick={() => setShowNew(false)}>{t('sidebar.cancel')}</button>
             </div>
           </div>
@@ -166,37 +167,20 @@ export default function Sidebar({
       </div>
 
       {/* Language switcher */}
-      <div style={{
-        padding: '12px 16px',
-        borderTop: '1px solid var(--border)',
-        display: 'flex',
-        gap: 4,
-      }}>
-        <LangBtn current={lang} lang="zh" setLang={setLang} label="中" />
-        <LangBtn current={lang} lang="en" setLang={setLang} label="EN" />
+      <div className="sidebar-lang">
+        <button
+          className={`lang-btn ${lang === 'zh' ? 'active' : ''}`}
+          onClick={() => setLang('zh')}
+        >
+          中
+        </button>
+        <button
+          className={`lang-btn ${lang === 'en' ? 'active' : ''}`}
+          onClick={() => setLang('en')}
+        >
+          EN
+        </button>
       </div>
     </div>
-  )
-}
-
-function LangBtn({ current, lang, setLang, label }: { current: Lang; lang: Lang; setLang: (l: Lang) => void; label: string }) {
-  return (
-    <button
-      onClick={() => setLang(lang)}
-      style={{
-        flex: 1,
-        padding: '4px 0',
-        fontSize: 11,
-        fontWeight: 600,
-        borderRadius: 'var(--radius-sm)',
-        border: 'none',
-        cursor: 'pointer',
-        background: current === lang ? 'var(--accent)' : 'transparent',
-        color: current === lang ? '#fff' : 'var(--text-tertiary)',
-        transition: 'all 0.15s',
-      }}
-    >
-      {label}
-    </button>
   )
 }

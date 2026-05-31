@@ -23,7 +23,7 @@ const strings: Record<Lang, Record<string, string>> = {
     zoom_out: '缩小',
     reset_zoom: '重置缩放',
     help: '帮助',
-    about: '关于 Folder Manager',
+    about: '关于 LeafFolder',
     folder_context_open: '在资源管理器中打开',
     folder_context_star: '星标',
     folder_context_unstar: '取消星标',
@@ -50,7 +50,7 @@ const strings: Record<Lang, Record<string, string>> = {
     zoom_out: 'Zoom Out',
     reset_zoom: 'Reset Zoom',
     help: 'Help',
-    about: 'About Folder Manager',
+    about: 'About LeafFolder',
     folder_context_open: 'Open in File Explorer',
     folder_context_star: 'Star',
     folder_context_unstar: 'Unstar',
@@ -101,7 +101,7 @@ function buildMenu(lang: Lang): Menu {
         { label: s.about, click: () => {
           const win = BrowserWindow.getFocusedWindow()
           if (win) {
-            win.webContents.executeJavaScript(`alert('Folder Manager v0.1.0')`)
+            win.webContents.executeJavaScript(`alert('LeafFolder v0.1.0')`)
           }
         }},
       ],

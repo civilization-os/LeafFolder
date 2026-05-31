@@ -17,21 +17,21 @@ export default function ConfirmDialog({ open, title, message, confirmLabel, canc
   return (
     <div className="dialog-overlay" onClick={onCancel}>
       <div className="dialog" onClick={e => e.stopPropagation()} style={{ maxWidth: 380, textAlign: 'center' }}>
-        <div style={{ fontSize: 24, marginBottom: 12 }}>⚠️</div>
+        <span className="dialog-icon">⚠️</span>
         <div className="dialog-title" style={{ fontSize: 15, marginBottom: 8 }}>{title}</div>
-        <div className="text-secondary" style={{ fontSize: 12, marginBottom: 20, lineHeight: 1.6 }}>
+        <div className="dialog-body" style={{ marginBottom: 20 }}>
           {message}
         </div>
         <div className="dialog-actions" style={{ justifyContent: 'center' }}>
           {cancelLabel !== undefined && (
-            <button className="btn btn-ghost" onClick={onCancel}>{cancelLabel || '取消'}</button>
+            <button className="btn btn-ghost" onClick={onCancel}>{cancelLabel || 'Cancel'}</button>
           )}
           <button
             className={`btn ${danger ? 'btn-danger' : 'btn-primary'}`}
             onClick={onConfirm}
             autoFocus
           >
-            {confirmLabel || '确定'}
+            {confirmLabel || 'Confirm'}
           </button>
         </div>
       </div>

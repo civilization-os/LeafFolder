@@ -39,15 +39,15 @@ export default function DrivePickerDialog({ onSelect, onSkip }: Props) {
   return (
     <div className="dialog-overlay">
       <div className="dialog" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
-        <div style={{ fontSize: 22, marginBottom: 8 }}>💾</div>
+        <span className="dialog-icon">💾</span>
         <div className="dialog-title" style={{ marginBottom: 8 }}>{t('drive_picker.title')}</div>
-        <div className="text-secondary" style={{ fontSize: 12, marginBottom: 20, lineHeight: 1.6 }}>
+        <div className="dialog-body">
           {t('drive_picker.description')}
         </div>
 
         {showCustom ? (
-          <div style={{ marginBottom: 20 }}>
-            <div className="text-secondary" style={{ fontSize: 12, marginBottom: 8 }}>
+          <div className="mb-4">
+            <div className="text-secondary mb-2 text-sm">
               未检测到盘符，请手动输入：
             </div>
             <input
@@ -60,28 +60,23 @@ export default function DrivePickerDialog({ onSelect, onSkip }: Props) {
             />
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+          <div className="drive-list">
             {drives.map(d => (
               <button
                 key={d.letter}
                 onClick={() => setSelected(d.letter)}
                 type="button"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px',
-                  borderRadius: 'var(--radius-md)', border: `1px solid ${selected === d.letter ? 'var(--accent)' : 'var(--border)'}`,
-                  background: selected === d.letter ? 'var(--accent-bg)' : 'var(--bg-secondary)',
-                  cursor: 'pointer', textAlign: 'left', transition: 'all 0.1s',
-                }}
+                className={`drive-item ${selected === d.letter ? 'selected' : ''}`}
               >
-                <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent)', width: 32 }}>
+                <span className="drive-letter">
                   {d.letter.replace(':', '')}
                 </span>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 500 }}>{t('drive_picker.drive', { letter: d.letter.replace(':', '') })}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{formatSize(d.size)}</div>
+                <div className="drive-info">
+                  <div className="drive-info-name">{t('drive_picker.drive', { letter: d.letter.replace(':', '') })}</div>
+                  <div className="drive-info-size">{formatSize(d.size)}</div>
                 </div>
                 {selected === d.letter && (
-                  <span style={{ marginLeft: 'auto', color: 'var(--accent)' }}>✓</span>
+                  <span className="drive-check">✓</span>
                 )}
               </button>
             ))}

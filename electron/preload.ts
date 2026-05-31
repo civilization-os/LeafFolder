@@ -55,6 +55,17 @@ const api = {
   // Show folder context menu
   showFolderContextMenu: (starred: boolean, appName?: string) => ipcRenderer.invoke('show-folder-context-menu', { starred, appName }),
 
+  // Window controls for custom title bar
+  minimizeWindow: () => ipcRenderer.invoke('window-minimize'),
+  maximizeWindow: () => ipcRenderer.invoke('window-maximize'),
+  closeWindow: () => ipcRenderer.invoke('window-close'),
+  isMaximized: () => ipcRenderer.invoke('window-is-maximized'),
+  onMaximizedChanged: (callback: (maximized: boolean) => void) => {
+    const handler = (_event: any, maximized: boolean) => callback(maximized)
+    ipcRenderer.on('window-maximized-changed', handler)
+    return () => ipcRenderer.removeListener('window-maximized-changed', handler)
+  },
+
   // Context menu actions from main process
   onContextMenuAction: (callback: (action: string) => void) => {
     const handler = (_event: any, action: string) => callback(action)

@@ -123,13 +123,17 @@ export default function CreateFolderDialog({ workspaceId, categories: initialCat
 
   return (
     <div className="dialog-overlay" onClick={onClose}>
-      <div className="dialog" onClick={e => e.stopPropagation()} style={scanResults.length > 0 ? { maxWidth: 600, maxHeight: '80vh', display: 'flex', flexDirection: 'column' } : undefined}>
+      <div
+        className="dialog"
+        onClick={e => e.stopPropagation()}
+        style={scanResults.length > 0 ? { maxWidth: 600, maxHeight: '80vh', display: 'flex', flexDirection: 'column' } : undefined}
+      >
         <div className="dialog-title">
           {mode === 'create' ? t('dialog.create_folder') : t('dialog.scan_directory')}
         </div>
 
         {/* Mode tabs */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <div className="dialog-tabs">
           <button className={`btn ${mode === 'create' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => { setMode('create'); setScanResults([]) }}>
             {t('dialog.manual')}
           </button>
@@ -138,13 +142,13 @@ export default function CreateFolderDialog({ workspaceId, categories: initialCat
           </button>
         </div>
 
-        {/* Category: select, quick-create, or custom */}
+        {/* Category: select or create */}
         {cats.length > 0 && !showNewCat ? (
-          <div className="input-group" style={{ marginBottom: 12 }}>
+          <div className="input-group mb-3">
             <select
               value={categoryId}
               onChange={e => setCategoryId(Number(e.target.value))}
-              style={{ flex: 1, padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+              style={{ flex: 1 }}
             >
               {cats.filter(c => !c.parent_id).map(pc => (
                 <optgroup key={pc.id} label={pc.name}>
@@ -154,7 +158,6 @@ export default function CreateFolderDialog({ workspaceId, categories: initialCat
                   ))}
                 </optgroup>
               ))}
-              {/* Uncategorized top-level categories without children */}
               {cats.filter(c => !c.parent_id).length === 0 && cats.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
@@ -162,17 +165,17 @@ export default function CreateFolderDialog({ workspaceId, categories: initialCat
             <button className="btn btn-ghost btn-sm" onClick={() => setShowNewCat(true)} style={{ whiteSpace: 'nowrap' }}>+ {t('settings.new_category')}</button>
           </div>
         ) : showNewCat && cats.length > 0 ? (
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>快速添加：</div>
+          <div className="mb-3">
+            <div className="text-tertiary text-sm mb-2">快速添加：</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
               {DEFAULT_CATEGORIES.filter(d => !cats.some(c => c.name === d)).map((name, i) => (
                 <button
                   key={name}
-                  className="btn btn-sm"
+                  className="preset-cat-btn"
                   style={{
-                    background: `${CAT_COLORS[i % CAT_COLORS.length]}20`,
+                    background: `${CAT_COLORS[i % CAT_COLORS.length]}18`,
                     color: CAT_COLORS[i % CAT_COLORS.length],
-                    border: `1px solid ${CAT_COLORS[i % CAT_COLORS.length]}40`,
+                    borderColor: `${CAT_COLORS[i % CAT_COLORS.length]}30`,
                   }}
                   onClick={async () => {
                     const cat = await window.api.createCategory(name, workspaceId, { color: CAT_COLORS[i % CAT_COLORS.length] })
@@ -191,29 +194,34 @@ export default function CreateFolderDialog({ workspaceId, categories: initialCat
                 value={newCatName}
                 onChange={e => setNewCatName(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleAddCategory()}
-                style={{ flex: 1 }}
+                className="flex-1"
                 autoFocus
               />
-              <div className="flex gap-1">
+              <div className="color-picker-row">
                 {CAT_COLORS.map(c => (
-                  <button key={c} onClick={() => setNewCatColor(c)} style={{ width: 16, height: 16, borderRadius: '50%', background: c, border: newCatColor === c ? '2px solid var(--text-primary)' : '2px solid transparent', cursor: 'pointer', padding: 0 }} />
+                  <button
+                    key={c}
+                    onClick={() => setNewCatColor(c)}
+                    className={`color-picker-btn ${newCatColor === c ? 'active' : ''}`}
+                    style={{ background: c }}
+                  />
                 ))}
               </div>
               <button className="btn btn-primary btn-sm" onClick={handleAddCategory} disabled={!newCatName.trim()}>{t('form.add')}</button>
             </div>
           </div>
         ) : (
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 6 }}>{t('folder.select_category')}</div>
+          <div className="mb-3">
+            <div className="text-secondary text-sm mb-2">{t('folder.select_category')}</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {DEFAULT_CATEGORIES.map((name, i) => (
                 <button
                   key={name}
-                  className="btn btn-sm"
+                  className="preset-cat-btn"
                   style={{
-                    background: `${CAT_COLORS[i % CAT_COLORS.length]}20`,
+                    background: `${CAT_COLORS[i % CAT_COLORS.length]}18`,
                     color: CAT_COLORS[i % CAT_COLORS.length],
-                    border: `1px solid ${CAT_COLORS[i % CAT_COLORS.length]}40`,
+                    borderColor: `${CAT_COLORS[i % CAT_COLORS.length]}30`,
                   }}
                   onClick={async () => {
                     const cat = await window.api.createCategory(name, workspaceId, { color: CAT_COLORS[i % CAT_COLORS.length] })
@@ -225,7 +233,11 @@ export default function CreateFolderDialog({ workspaceId, categories: initialCat
                   + {name}
                 </button>
               ))}
-              <button className="btn btn-sm btn-ghost" onClick={() => setShowNewCat(true)} style={{ border: '1px dashed var(--border)' }}>
+              <button
+                className="btn btn-sm btn-ghost"
+                onClick={() => setShowNewCat(true)}
+                style={{ border: '1px dashed var(--border)', borderRadius: 'var(--radius-full)' }}
+              >
                 {t('settings.new_category')}⋯
               </button>
             </div>
@@ -246,33 +258,32 @@ export default function CreateFolderDialog({ workspaceId, categories: initialCat
               value={description}
               onChange={e => setDescription(e.target.value)}
               rows={2}
-              style={{ resize: 'none', marginTop: 8 }}
+              className="mt-2"
+              style={{ resize: 'none' }}
             />
             {allTags.length > 0 && (
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+              <div className="tag-selector">
                 {allTags.map(tag => (
                   <label
                     key={tag.id}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', cursor: 'pointer', fontSize: 11,
-                      borderRadius: 'var(--radius-sm)', border: `1px solid ${selectedTags.has(tag.id) ? tag.color : 'var(--border)'}`,
-                      background: selectedTags.has(tag.id) ? `${tag.color}20` : 'transparent',
-                      color: selectedTags.has(tag.id) ? tag.color : 'var(--text-secondary)',
-                      transition: 'all 0.1s',
-                    }}
+                    className={`tag-chip ${selectedTags.has(tag.id) ? 'selected' : ''}`}
+                    style={selectedTags.has(tag.id) ? {
+                      background: `${tag.color}18`,
+                      borderColor: tag.color,
+                      color: tag.color,
+                    } : undefined}
                   >
                     <input
                       type="checkbox"
                       checked={selectedTags.has(tag.id)}
                       onChange={() => setSelectedTags(prev => { const next = new Set(prev); if (next.has(tag.id)) next.delete(tag.id); else next.add(tag.id); return next })}
-                      style={{ display: 'none' }}
                     />
                     {tag.name}
                   </label>
                 ))}
               </div>
             )}
-            <div className="dialog-actions" style={{ marginTop: 16 }}>
+            <div className="dialog-actions">
               <button className="btn btn-ghost" onClick={onClose}>{t('sidebar.cancel')}</button>
               <button className="btn btn-primary" onClick={handleCreate} disabled={loading || !name.trim() || (!categoryId && !newCatName.trim())}>
                 {loading ? '⋯' : t('sidebar.create')}
@@ -281,38 +292,38 @@ export default function CreateFolderDialog({ workspaceId, categories: initialCat
           </>
         ) : scanResults.length > 0 ? (
           <>
-            <div className="input-group" style={{ marginBottom: 8, flexShrink: 0 }}>
+            <div className="input-group mb-2 flex-shrink-0">
               <input
                 placeholder={t('scan.filter')}
                 value={filter}
                 onChange={e => setFilter(e.target.value)}
-                style={{ flex: 1 }}
+                className="flex-1"
                 autoFocus
               />
-              <button className={`btn btn-sm ${useRegex ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setUseRegex(!useRegex)} style={{ fontSize: 11 }}>
+              <button className={`btn btn-sm ${useRegex ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setUseRegex(!useRegex)} style={{ fontSize: 'var(--text-sm)' }}>
                 {t('scan.regex')}
               </button>
             </div>
-            <div className="flex items-center gap-2" style={{ marginBottom: 8, flexShrink: 0, fontSize: 12, color: 'var(--text-secondary)' }}>
+            <div className="flex items-center gap-2 mb-2 flex-shrink-0 text-secondary" style={{ fontSize: 'var(--text-base)' }}>
               <label className="flex items-center gap-1" style={{ cursor: 'pointer' }}>
                 <input type="checkbox" checked={filteredResults.length > 0 && filteredResults.length === selectedPaths.size} onChange={toggleAll} />
                 {t('scan.select_all')}
               </label>
               <span style={{ marginLeft: 'auto' }}>{selectedPaths.size} / {scanResults.length}</span>
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', marginBottom: 12, minHeight: 0 }}>
+            <div className="scan-list">
               {filteredResults.length === 0 ? (
-                <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 12 }}>{t('scan.no_results')}</div>
+                <div className="scan-list-empty">{t('scan.no_results')}</div>
               ) : (
                 filteredResults.map(r => (
-                  <label key={r.path} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', cursor: 'pointer', fontSize: 12, borderBottom: '1px solid var(--border)' }}>
+                  <label key={r.path} className="scan-list-item">
                     <input type="checkbox" checked={selectedPaths.has(r.path)} onChange={() => toggleSelect(r.path)} />
-                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.path}</span>
+                    <span className="scan-list-item-path">{r.path}</span>
                   </label>
                 ))
               )}
             </div>
-            <div className="dialog-actions" style={{ flexShrink: 0 }}>
+            <div className="dialog-actions flex-shrink-0">
               <button className="btn btn-ghost" onClick={() => { setScanResults([]); setSelectedPaths(new Set()) }}>{t('sidebar.cancel')}</button>
               <button className="btn btn-primary" onClick={handleImport} disabled={loading || selectedPaths.size === 0}>
                 {loading ? '⋯' : t('scan.import_selected', { count: selectedPaths.size })}
@@ -326,12 +337,12 @@ export default function CreateFolderDialog({ workspaceId, categories: initialCat
                 placeholder={t('folder.directory_path')}
                 value={scanPath}
                 onChange={e => setScanPath(e.target.value)}
-                style={{ flex: 1 }}
+                className="flex-1"
                 onKeyDown={e => e.key === 'Enter' && handlePreviewScan()}
               />
               <button className="btn btn-ghost btn-icon" onClick={async () => { const dir = await window.api.selectDirectory(); if (dir) setScanPath(dir) }}>📁</button>
             </div>
-            <div className="dialog-actions" style={{ marginTop: 16 }}>
+            <div className="dialog-actions" style={{ marginTop: 'var(--space-5)' }}>
               <button className="btn btn-ghost" onClick={onClose}>{t('sidebar.cancel')}</button>
               <button className="btn btn-primary" onClick={handlePreviewScan} disabled={loading || !scanPath.trim()}>
                 {loading ? '⋯' : t('folder.scan')}

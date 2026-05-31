@@ -6,6 +6,20 @@ import { registerSettingsHandlers } from './settings'
 import { setAppMenu, registerMenuHandlers } from './menu'
 
 let mainWindow: BrowserWindow | null = null
+let isMaximized = false
+
+// Single instance lock — prevent opening the app twice
+const gotTheLock = app.requestSingleInstanceLock()
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.focus()
+    }
+  })
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -13,6 +27,8 @@ function createWindow() {
     height: 800,
     minWidth: 900,
     minHeight: 600,
+    frame: false,
+    icon: path.join(__dirname, '../build/icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -29,7 +45,29 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null
   })
+
+  // Track maximize state for custom title bar
+  mainWindow.on('maximize', () => {
+    isMaximized = true
+    mainWindow?.webContents.send('window-maximized-changed', true)
+  })
+  mainWindow.on('unmaximize', () => {
+    isMaximized = false
+    mainWindow?.webContents.send('window-maximized-changed', false)
+  })
 }
+
+// Window control IPC handlers
+ipcMain.handle('window-minimize', () => mainWindow?.minimize())
+ipcMain.handle('window-maximize', () => {
+  if (mainWindow?.isMaximized()) {
+    mainWindow.unmaximize()
+  } else {
+    mainWindow?.maximize()
+  }
+})
+ipcMain.handle('window-close', () => mainWindow?.close())
+ipcMain.handle('window-is-maximized', () => mainWindow?.isMaximized() ?? false)
 
 app.whenReady().then(async () => {
   const db = await initDatabase()

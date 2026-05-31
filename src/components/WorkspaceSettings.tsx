@@ -175,17 +175,9 @@ export default function WorkspaceSettings({ workspace, onUpdate }: Props) {
   const renderCategoryRow = (cat: Category, indent: number = 0) => (
     <div
       key={cat.id}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px',
-        marginLeft: indent * 20,
-        background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)',
-        border: '1px solid var(--border)',
-      }}
+      className={`cat-item ${indent > 0 ? 'cat-item-indent' : ''}`}
     >
-      <div style={{
-        width: 12, height: 12, borderRadius: '50%', background: cat.color,
-        flexShrink: 0,
-      }} />
+      <div className="cat-dot" style={{ background: cat.color }} />
       {editingId === cat.id ? (
         <input
           value={editingName}
@@ -193,11 +185,11 @@ export default function WorkspaceSettings({ workspace, onUpdate }: Props) {
           onBlur={() => handleUpdateCategory(cat.id)}
           onKeyDown={e => e.key === 'Enter' && handleUpdateCategory(cat.id)}
           autoFocus
-          style={{ flex: 1 }}
+          className="flex-1"
         />
       ) : (
         <span
-          style={{ flex: 1, cursor: 'pointer', fontSize: 13, fontWeight: indent === 0 ? 600 : 400 }}
+          className={`cat-name indent-${indent}`}
           onDoubleClick={() => { setEditingId(cat.id); setEditingName(cat.name) }}
         >
           {cat.name}
@@ -206,78 +198,75 @@ export default function WorkspaceSettings({ workspace, onUpdate }: Props) {
 
       {/* App indicator */}
       {cat.app_name && (
-        <span style={{
-          fontSize: 10, padding: '1px 6px', borderRadius: 3,
-          background: '#5e6ad220', color: '#5e6ad2', whiteSpace: 'nowrap',
-        }}>
+        <span className="cat-app-badge">
           {cat.app_name}
         </span>
       )}
 
-      <div style={{ display: 'flex', gap: 2 }}>
+      <div className="cat-colors">
         {COLORS.map(c => (
           <button
             key={c}
             onClick={() => handleChangeColor(cat.id, c)}
-            style={{
-              width: 14, height: 14, borderRadius: '50%', background: c,
-              border: cat.color === c ? '2px solid var(--text-primary)' : '2px solid transparent',
-              cursor: 'pointer', padding: 0,
-            }}
+            className={`cat-color-btn ${cat.color === c ? 'active' : ''}`}
+            style={{ background: c }}
           />
         ))}
       </div>
 
       {/* App picker button */}
-      <button
-        className="btn-icon btn-ghost"
-        onClick={() => handleSetApp(cat.id)}
-        title={t('settings.app')}
-        style={{ fontSize: 11, opacity: 0.7 }}
-      >
-        {cat.app_path ? '⚙' : '📎'}
-      </button>
-      {cat.app_path && (
+      <div className="cat-actions">
         <button
-          className="btn-icon btn-ghost"
-          onClick={() => handleClearApp(cat.id)}
-          title={t('settings.app_clear')}
-          style={{ fontSize: 9, opacity: 0.5, color: 'var(--danger)' }}
+          className="btn-icon btn-sm btn-ghost"
+          onClick={() => handleSetApp(cat.id)}
+          title={t('settings.app')}
+          style={{ fontSize: 'var(--text-sm)', opacity: 0.7 }}
+        >
+          {cat.app_path ? '⚙' : '📎'}
+        </button>
+        {cat.app_path && (
+          <button
+            className="btn-icon btn-sm btn-ghost"
+            onClick={() => handleClearApp(cat.id)}
+            title={t('settings.app_clear')}
+            style={{ fontSize: 9, opacity: 0.5, color: 'var(--danger)' }}
+          >
+            ✕
+          </button>
+        )}
+
+        {/* Add sub-category */}
+        <button
+          className="btn-icon btn-sm btn-ghost"
+          onClick={() => { setNewCatParentId(cat.id); setNewCatName(''); }}
+          title={t('settings.add_subcategory')}
+          style={{ fontSize: 'var(--text-base)', opacity: 0.6 }}
+        >
+          +
+        </button>
+
+        <button
+          className="btn-icon btn-sm btn-ghost"
+          onClick={() => handleDeleteCategory(cat.id)}
+          style={{ color: 'var(--text-tertiary)' }}
         >
           ✕
         </button>
-      )}
-
-      {/* Add sub-category */}
-      <button
-        className="btn-icon btn-ghost"
-        onClick={() => { setNewCatParentId(cat.id); setNewCatName(''); }}
-        title={t('settings.add_subcategory')}
-        style={{ fontSize: 12, opacity: 0.6 }}
-      >
-        +
-      </button>
-
-      <button
-        className="btn-icon btn-ghost"
-        onClick={() => handleDeleteCategory(cat.id)}
-        style={{ color: 'var(--text-tertiary)' }}
-      >
-        ✕
-      </button>
+      </div>
     </div>
   )
 
   return (
-    <div style={{ maxWidth: 700 }}>
-      <div className="mb-4">
-        <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>{workspace.name}</h2>
-        <div className="text-tertiary" style={{ fontSize: 12 }}>{workspace.path}</div>
+    <div className="settings-page">
+      {/* Workspace Info */}
+      <div className="ws-info">
+        <div className="ws-info-name">{workspace.name}</div>
+        <div className="ws-info-path">{workspace.path}</div>
       </div>
 
       {/* Language Switcher */}
-      <div style={{ marginBottom: 24 }}>
-        <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{t('settings.language')}</h3>
+      <div className="settings-section">
+        <div className="settings-section-title">{t('settings.language')}</div>
         <div className="flex gap-2">
           <button
             className={`btn ${lang === 'zh' ? 'btn-primary' : 'btn-ghost'}`}
@@ -295,8 +284,8 @@ export default function WorkspaceSettings({ workspace, onUpdate }: Props) {
       </div>
 
       {/* Default Drive */}
-      <div style={{ marginBottom: 24 }}>
-        <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{t('settings.default_drive')}</h3>
+      <div className="settings-section">
+        <div className="settings-section-title">{t('settings.default_drive')}</div>
         <div className="input-group">
           <input
             value={defaultDrive}
@@ -309,14 +298,14 @@ export default function WorkspaceSettings({ workspace, onUpdate }: Props) {
             maxLength={2}
           />
           <button className="btn btn-primary" onClick={handleSaveDrive}>{t('form.save')}</button>
-          <span className="text-tertiary" style={{ fontSize: 11 }}>{t('settings.default_drive_hint')}</span>
+          <span className="text-tertiary" style={{ fontSize: 'var(--text-sm)' }}>{t('settings.default_drive_hint')}</span>
         </div>
       </div>
 
       {/* Categories */}
-      <div style={{ marginBottom: 32 }}>
+      <div className="settings-section">
         <div className="flex items-center justify-between mb-2">
-          <h3 style={{ fontSize: 13, fontWeight: 600 }}>{t('settings.categories')}</h3>
+          <div className="settings-section-title" style={{ marginBottom: 0 }}>{t('settings.categories')}</div>
         </div>
 
         {/* Tree display */}
@@ -330,18 +319,18 @@ export default function WorkspaceSettings({ workspace, onUpdate }: Props) {
         </div>
 
         {/* Quick-add default trees */}
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>
+        <div className="text-tertiary text-sm mb-1">
           {t('settings.presets') || '快速添加分类模板：'}
         </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
           {DEFAULT_TREE.filter(d => treeMissingCount(d) > 0).map((entry) => (
             <button
               key={entry.name}
-              className="btn btn-sm"
+              className="preset-cat-btn"
               style={{
-                background: `${entry.color}20`,
+                background: `${entry.color}18`,
                 color: entry.color,
-                border: `1px solid ${entry.color}40`,
+                borderColor: `${entry.color}30`,
               }}
               onClick={() => handleAddDefaultTree(entry)}
             >
@@ -353,12 +342,12 @@ export default function WorkspaceSettings({ workspace, onUpdate }: Props) {
 
         {/* Add category form */}
         {newCatParentId !== null && (
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>
+          <div className="text-secondary text-sm mb-1">
             {t('settings.parent_category')}:
             {' '}{categories.find(c => c.id === newCatParentId)?.name}
             <button
               className="btn btn-ghost"
-              style={{ fontSize: 10, padding: '0 4px', marginLeft: 4 }}
+              style={{ fontSize: 'var(--text-xs)', padding: '0 4px', marginLeft: 4 }}
               onClick={() => setNewCatParentId(null)}
             >
               ✕
@@ -371,18 +360,15 @@ export default function WorkspaceSettings({ workspace, onUpdate }: Props) {
             value={newCatName}
             onChange={e => setNewCatName(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleAddCategory()}
-            style={{ flex: 1 }}
+            className="flex-1"
           />
-          <div className="flex gap-1">
+          <div className="color-picker-row">
             {COLORS.map(c => (
               <button
                 key={c}
                 onClick={() => setNewCatColor(c)}
-                style={{
-                  width: 16, height: 16, borderRadius: '50%', background: c,
-                  border: newCatColor === c ? '2px solid var(--text-primary)' : '2px solid transparent',
-                  cursor: 'pointer', padding: 0,
-                }}
+                className={`color-picker-btn ${newCatColor === c ? 'active' : ''}`}
+                style={{ background: c }}
               />
             ))}
           </div>
@@ -393,14 +379,14 @@ export default function WorkspaceSettings({ workspace, onUpdate }: Props) {
       </div>
 
       {/* About */}
-      <div>
-        <h3 style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{t('settings.about')}</h3>
-        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.8 }}>
+      <div className="settings-section" style={{ marginBottom: 0 }}>
+        <div className="settings-section-title">{t('settings.about')}</div>
+        <div className="about-section">
           <div>{t('settings.created')}: {new Date(workspace.created_at).toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US')}</div>
           <div>{t('settings.database_path')}: {workspace.path}</div>
         </div>
 
-        <div style={{ marginTop: 20, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+        <div className="about-divider">
           <button
             className="btn btn-danger"
             onClick={async () => {

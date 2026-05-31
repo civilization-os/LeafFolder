@@ -78,6 +78,13 @@ export interface Api {
   setMenuLanguage: (lang: string) => Promise<void>
   showFolderContextMenu: (starred: boolean, appName?: string) => Promise<void>
   onContextMenuAction: (callback: (action: string) => void) => () => void
+
+  // Window controls
+  minimizeWindow: () => Promise<void>
+  maximizeWindow: () => Promise<void>
+  closeWindow: () => Promise<void>
+  isMaximized: () => Promise<boolean>
+  onMaximizedChanged: (callback: (maximized: boolean) => void) => () => void
 }
 
 declare global {

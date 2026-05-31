@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar'
 import WorkspaceSettings from './components/WorkspaceSettings'
 import FolderGrid from './components/FolderGrid'
 import DrivePickerDialog from './components/DrivePickerDialog'
+import TitleBar from './components/TitleBar'
 import { useI18n } from './locales/I18nContext'
 import { ConfirmProvider } from './locales/ConfirmContext'
 
@@ -74,65 +75,63 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="app-layout" style={{ alignItems: 'center', justifyContent: 'center' }}>
-        <div className="text-secondary">{t('common.loading')}</div>
+      <div className="app-container">
+        <TitleBar />
+        <div className="app-layout" style={{ alignItems: 'center', justifyContent: 'center' }}>
+          <div className="text-secondary loading-state" style={{ minHeight: 'auto' }}>{t('common.loading')}</div>
+        </div>
       </div>
     )
   }
 
   return (
     <ConfirmProvider>
-    <div className="app-layout">
-      <Sidebar
-        workspaces={workspaces}
-        activeWorkspaceId={activeWorkspaceId}
-        activePage={page}
-        onSelectWorkspace={handleSelectWorkspace}
-        onSelectWorkspaceAndPage={handleSelectWorkspaceAndPage}
-        onPageChange={setPage}
-        onWorkspacesChange={loadWorkspaces}
+    <div className="app-container">
+      <TitleBar
+        title={activeWorkspace?.name || t('app.title')}
+        showSearch={page === 'folders'}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
       />
-      <div className="main-content">
-        <div className="main-header">
-          <span>{activeWorkspace?.name || t('app.title')}</span>
-          {page === 'folders' && (
-            <div className="flex items-center gap-2">
-              <input
-                placeholder={t('folder.search')}
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                style={{ width: 240 }}
+      <div className="app-layout">
+        <Sidebar
+          workspaces={workspaces}
+          activeWorkspaceId={activeWorkspaceId}
+          activePage={page}
+          onSelectWorkspace={handleSelectWorkspace}
+          onSelectWorkspaceAndPage={handleSelectWorkspaceAndPage}
+          onPageChange={setPage}
+          onWorkspacesChange={loadWorkspaces}
+        />
+        <div className="main-content">
+          <div className="main-body">
+            {page === 'folders' && activeWorkspaceId && (
+              <FolderGrid
+                folders={filteredFolders}
+                workspaceId={activeWorkspaceId}
+                onRefresh={handleRefresh}
               />
-            </div>
-          )}
-        </div>
-        <div className="main-body">
-          {page === 'folders' && activeWorkspaceId && (
-            <FolderGrid
-              folders={filteredFolders}
-              workspaceId={activeWorkspaceId}
-              onRefresh={handleRefresh}
-            />
-          )}
-          {page === 'settings' && activeWorkspace && (
-            <WorkspaceSettings workspace={activeWorkspace} onUpdate={async () => {
-              const ws = await window.api.getWorkspaces()
-              setWorkspaces(ws)
-              if (ws.length > 0 && !ws.find(w => w.id === activeWorkspaceId)) {
-                setActiveWorkspaceId(ws[0].id)
-              } else if (ws.length === 0) {
-                setActiveWorkspaceId(null)
-              }
-              setPage('folders')
-            }} />
-          )}
-          {!activeWorkspaceId && (
-            <div className="empty-state">
-              <div className="empty-state-icon">📁</div>
-              <div className="empty-state-title">{t('common.no_workspace_selected')}</div>
-              <div className="empty-state-desc">{t('common.no_workspace_hint')}</div>
-            </div>
-          )}
+            )}
+            {page === 'settings' && activeWorkspace && (
+              <WorkspaceSettings workspace={activeWorkspace} onUpdate={async () => {
+                const ws = await window.api.getWorkspaces()
+                setWorkspaces(ws)
+                if (ws.length > 0 && !ws.find(w => w.id === activeWorkspaceId)) {
+                  setActiveWorkspaceId(ws[0].id)
+                } else if (ws.length === 0) {
+                  setActiveWorkspaceId(null)
+                }
+                setPage('folders')
+              }} />
+            )}
+            {!activeWorkspaceId && (
+              <div className="empty-state">
+                <div className="empty-state-icon">📁</div>
+                <div className="empty-state-title">{t('common.no_workspace_selected')}</div>
+                <div className="empty-state-desc">{t('common.no_workspace_hint')}</div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
       {showDrivePicker && (

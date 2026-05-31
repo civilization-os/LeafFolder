@@ -1,0 +1,33 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5e6ad2"/>
+      <stop offset="100%" stop-color="#4a55b0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded rect background -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- Folder (white, slightly transparent) -->
+  <path d="M136 168c0-17.7 14.3-32 32-32h56.7c8.5 0 16.6 3.4 22.6 9.4l22.6 22.6h108.1c17.7 0 32 14.3 32 32V344c0 17.7-14.3 32-32 32H168c-17.7 0-32-14.3-32-32V168z" fill="white" fill-opacity="0.92"/>
+
+  <!-- Folder tab highlight -->
+  <path d="M168 136h56.7l32 32H136v-16c0-8.8 7.2-16 16-16z" fill="white" fill-opacity="0.6"/>
+
+  <!-- Folder inner shadow line -->
+  <path d="M136 200h248" stroke="#e8e8eb" stroke-width="2" stroke-opacity="0.5"/>
+
+  <!-- Leaf (accent color, inside folder) -->
+  <path d="M226 304c0-44 40-72 84-72-44 0-84 28-84 72z" fill="#5e6ad2" opacity="0.85"/>
+  <path d="M226 304c0 44 40 72 84 72-44 0-84-28-84-72z" fill="#5e6ad2" opacity="0.35"/>
+  <path d="M310 232c0 44-40 72-84 72 44 0 84-28 84-72z" fill="#4a55b0" opacity="0.5"/>
+
+  <!-- Leaf stem -->
+  <path d="M260 338l14-22" stroke="#5e6ad2" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+
+  <!-- Leaf vein lines -->
+  <path d="M264 288l18-14" stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.25"/>
+  <path d="M264 288l-10-16" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.2"/>
+  <path d="M264 288l26-6" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.2"/>
+</svg>
